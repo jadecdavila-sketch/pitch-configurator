@@ -2,6 +2,8 @@
 
 A web application for configuring and exporting customized Learning & Development pitch presentations.
 
+**Live Demo:** https://jadecdavila-sketch.github.io/pitch-configurator/
+
 ## Features
 
 - Interactive wizard-based configuration
