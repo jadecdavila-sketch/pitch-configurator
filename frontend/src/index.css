@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  /* ansrsource Brand Colors */
+  --color-primary: #DA3C04;
+  --color-primary-dark: #DA3C04;
+  --color-primary-medium: #F26902;
+  --color-primary-light: #F8B50C;
+
+  --color-secondary: #127295;
+  --color-secondary-dark: #003366;
+  --color-secondary-light: #21A3B1;
+
+  --color-neutral: #2C2F30;
+  --color-neutral-charcoal: #2C2F30;
+  --color-neutral-gray: #8C8C8C;
+  --color-neutral-light-gray: #EAEAEA;
+
+  --color-success: #4CAF50;
+  --color-error: #F44336;
+  --color-warning: #FF9800;
+
+  /* Typography */
+  --font-family-sans: Mont, Arial, system-ui, -apple-system, sans-serif;
+  --font-family-heading: Mont, system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  background-color: white;
+  color: rgb(17 24 39);
+  font-family: var(--font-family-sans);
+}
