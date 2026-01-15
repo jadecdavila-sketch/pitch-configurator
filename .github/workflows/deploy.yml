@@ -35,6 +35,8 @@ jobs:
         run: cd frontend && pnpm install
 
       - name: Build
+        env:
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
         run: cd frontend && pnpm run build
 
       - name: Setup Pages
