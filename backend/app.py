@@ -127,12 +127,26 @@ def create_config_summary_slide(prs, config):
 
     # Configuration items
     y_pos = 1.8
+
+    # Format pricing if available
+    pricing_text = 'Not specified'
+    pricing = config.get('pricing')
+    if pricing:
+        if pricing.get('type') == 'fixed':
+            amount = pricing.get('amount', 0)
+            pricing_text = f"${amount:,.2f} (Fixed Price)"
+        elif pricing.get('type') == 'per-head':
+            price_per_head = pricing.get('pricePerHead', 0)
+            min_employees = pricing.get('minimumEmployees', 0)
+            pricing_text = f"${price_per_head:,.2f} per employee (min. {min_employees} employees)"
+
     config_items = [
         ('Client Name', config.get('clientName', 'Not specified')),
         ('Stage', config.get('stage', {}).get('name', 'Not selected')),
         ('Ambition', config.get('ambition', {}).get('name', 'Not selected')),
         ('Facilitation Model', config.get('facilitation', '').capitalize()),
         ('Delivery Modality', config.get('modality', '').capitalize()),
+        ('Pricing', pricing_text),
         ('Training Recipes', ', '.join([r['name'] for r in config.get('recipes', [])])),
     ]
 

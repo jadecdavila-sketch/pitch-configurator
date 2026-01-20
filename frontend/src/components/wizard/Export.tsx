@@ -11,6 +11,16 @@ export function Export() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pricingType, setPricingType] = useState<'fixed' | 'per-head' | null>(config.pricing?.type || null);
+  const [fixedAmount, setFixedAmount] = useState<string>(
+    config.pricing?.type === 'fixed' ? String(config.pricing.amount) : ''
+  );
+  const [pricePerHead, setPricePerHead] = useState<string>(
+    config.pricing?.type === 'per-head' ? String(config.pricing.pricePerHead) : ''
+  );
+  const [minimumEmployees, setMinimumEmployees] = useState<string>(
+    config.pricing?.type === 'per-head' ? String(config.pricing.minimumEmployees) : ''
+  );
 
   const handleGenerateSummary = async () => {
     setIsGenerating(true);
@@ -34,6 +44,31 @@ export function Export() {
       setError(err instanceof Error ? err.message : 'Failed to export PowerPoint');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handlePricingTypeChange = (type: 'fixed' | 'per-head' | null) => {
+    setPricingType(type);
+    if (!type) {
+      config.setPricing(null);
+      setFixedAmount('');
+      setPricePerHead('');
+      setMinimumEmployees('');
+    }
+  };
+
+  const handlePricingUpdate = () => {
+    if (pricingType === 'fixed' && fixedAmount) {
+      config.setPricing({
+        type: 'fixed',
+        amount: parseFloat(fixedAmount),
+      });
+    } else if (pricingType === 'per-head' && pricePerHead && minimumEmployees) {
+      config.setPricing({
+        type: 'per-head',
+        pricePerHead: parseFloat(pricePerHead),
+        minimumEmployees: parseInt(minimumEmployees, 10),
+      });
     }
   };
 
@@ -115,6 +150,131 @@ export function Export() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Pricing Section */}
+      <div className="space-y-4">
+        <h3 className="text-2xl font-bold text-secondary-dark">Pricing</h3>
+
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-neutral-charcoal">Select pricing model:</p>
+
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pricingType"
+                    value="fixed"
+                    checked={pricingType === 'fixed'}
+                    onChange={() => handlePricingTypeChange('fixed')}
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm font-medium text-neutral-charcoal">Fixed Price</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pricingType"
+                    value="per-head"
+                    checked={pricingType === 'per-head'}
+                    onChange={() => handlePricingTypeChange('per-head')}
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm font-medium text-neutral-charcoal">Price Per Head</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pricingType"
+                    value="none"
+                    checked={pricingType === null}
+                    onChange={() => handlePricingTypeChange(null)}
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm font-medium text-neutral-charcoal">No Pricing</span>
+                </label>
+              </div>
+            </div>
+
+            {pricingType === 'fixed' && (
+              <div className="pt-4 border-t border-neutral-light-gray">
+                <label className="block">
+                  <span className="text-sm font-medium text-neutral-charcoal mb-2 block">
+                    Fixed Amount ($)
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={fixedAmount}
+                    onChange={(e) => setFixedAmount(e.target.value)}
+                    onBlur={handlePricingUpdate}
+                    placeholder="Enter fixed price"
+                    className="w-full px-4 py-2 border-2 border-neutral-light-gray rounded-lg focus:border-primary focus:outline-none"
+                  />
+                </label>
+              </div>
+            )}
+
+            {pricingType === 'per-head' && (
+              <div className="pt-4 border-t border-neutral-light-gray space-y-4">
+                <label className="block">
+                  <span className="text-sm font-medium text-neutral-charcoal mb-2 block">
+                    Price Per Employee ($)
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={pricePerHead}
+                    onChange={(e) => setPricePerHead(e.target.value)}
+                    onBlur={handlePricingUpdate}
+                    placeholder="Enter price per employee"
+                    className="w-full px-4 py-2 border-2 border-neutral-light-gray rounded-lg focus:border-primary focus:outline-none"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-medium text-neutral-charcoal mb-2 block">
+                    Minimum Number of Employees
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={minimumEmployees}
+                    onChange={(e) => setMinimumEmployees(e.target.value)}
+                    onBlur={handlePricingUpdate}
+                    placeholder="Enter minimum employees"
+                    className="w-full px-4 py-2 border-2 border-neutral-light-gray rounded-lg focus:border-primary focus:outline-none"
+                  />
+                </label>
+              </div>
+            )}
+
+            {config.pricing && (
+              <div className="pt-4 border-t border-neutral-light-gray bg-primary/5 rounded-lg p-4">
+                <p className="text-sm font-bold text-neutral-charcoal mb-1">Current Pricing:</p>
+                {config.pricing.type === 'fixed' ? (
+                  <p className="text-lg font-bold text-primary">
+                    ${config.pricing.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                ) : (
+                  <p className="text-lg font-bold text-primary">
+                    ${config.pricing.pricePerHead.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per employee
+                    <span className="text-sm font-medium text-neutral-charcoal ml-2">
+                      (minimum {config.pricing.minimumEmployees} employees)
+                    </span>
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Executive Summary Section */}

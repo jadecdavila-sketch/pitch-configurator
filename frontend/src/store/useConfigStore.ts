@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ConfigurationState, Stage, Ambition, Recipe, CaseTile, Path, FacilitationModel, Modality } from '../types';
+import type { ConfigurationState, Stage, Ambition, Recipe, CaseTile, Path, FacilitationModel, Modality, Pricing } from '../types';
 
 interface ConfigStore extends ConfigurationState {
   setClientName: (clientName: string) => void;
@@ -15,6 +15,7 @@ interface ConfigStore extends ConfigurationState {
   setCta: (cta: string) => void;
   setNotes: (notes: string) => void;
   setNarrative: (narrative: string) => void;
+  setPricing: (pricing: Pricing) => void;
   reset: () => void;
 }
 
@@ -30,6 +31,7 @@ const initialState: ConfigurationState = {
   cta: 'Book a 45-minute working session to co-draft the 90-day plan.',
   notes: '',
   narrative: undefined,
+  pricing: null,
 };
 
 export const useConfigStore = create<ConfigStore>((set) => ({
@@ -72,6 +74,8 @@ export const useConfigStore = create<ConfigStore>((set) => ({
   setNotes: (notes) => set({ notes }),
 
   setNarrative: (narrative) => set({ narrative }),
+
+  setPricing: (pricing) => set({ pricing }),
 
   reset: () => set(initialState),
 }));

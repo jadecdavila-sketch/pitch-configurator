@@ -33,6 +33,19 @@ export interface Path {
 export type FacilitationModel = 'internal' | 'external' | 'mixed';
 export type Modality = 'digital' | 'hybrid' | 'in-person';
 
+export interface FixedPricing {
+  type: 'fixed';
+  amount: number;
+}
+
+export interface PerHeadPricing {
+  type: 'per-head';
+  pricePerHead: number;
+  minimumEmployees: number;
+}
+
+export type Pricing = FixedPricing | PerHeadPricing | null;
+
 export interface ConfigurationState {
   clientName: string;
   stage: Stage | null;
@@ -45,4 +58,5 @@ export interface ConfigurationState {
   cta: string;
   notes: string;
   narrative?: string;
+  pricing?: Pricing;
 }
