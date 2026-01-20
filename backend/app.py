@@ -9,9 +9,22 @@ import io
 import os
 from datetime import datetime
 from lxml import etree
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+# Configure Gemini API
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    print("Gemini API configured successfully")
+else:
+    print("WARNING: GEMINI_API_KEY not found in environment variables")
 
 # Recipe to slide mapping (matches frontend recipeSlideMapping.ts)
 RECIPE_TO_SLIDE_MAP = {
@@ -390,6 +403,91 @@ def generate_pptx():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate-summary', methods=['POST'])
+def generate_summary():
+    """
+    Generate executive summary using Gemini API (secure backend)
+
+    Request JSON should contain the configuration state from frontend
+    Returns: {"summary": "Generated executive summary text..."}
+    """
+    try:
+        if not GEMINI_API_KEY:
+            return jsonify({'error': 'Gemini API key not configured on server'}), 500
+
+        # Get configuration from request
+        config = request.json
+
+        if not config:
+            return jsonify({'error': 'No configuration provided'}), 400
+
+        # Build the prompt (matching frontend logic)
+        client_name = config.get('clientName', 'the client')
+        stage = config.get('stage', {})
+        ambition = config.get('ambition', {})
+        path = config.get('path', {})
+        facilitation = config.get('facilitation', '')
+        modality = config.get('modality', '')
+        recipes = config.get('recipes', [])
+        case_tiles = config.get('caseTiles', [])
+
+        # Format recipes and case tiles for prompt
+        recipes_text = '\n'.join([f"- {r.get('name', '')}: {r.get('description', '')}" for r in recipes])
+        case_tiles_text = '\n'.join([f"- {c.get('title', '')}: {c.get('metric', '')}" for c in case_tiles])
+
+        path_type = 'Certification-Based' if path.get('type') == 'certification' else 'Tailored Programs'
+
+        prompt = f"""
+You are an expert L&D consultant creating an executive summary for a customized Learning & Development proposal for a Global Capability Center (GCC).
+
+Based on the following configuration, write a compelling executive summary (3-4 paragraphs, approximately 250-300 words):
+
+**Client Configuration:**
+- Client Name: {client_name}
+- Stage: {stage.get('name', '')} - {stage.get('description', '')}
+- Strategic Ambition: {ambition.get('name', '')}
+- Learning Path Type: {path_type}
+- Facilitation Model: {facilitation}
+- Delivery Modality: {modality}
+
+**Selected Training Recipes ({len(recipes)}):**
+{recipes_text}
+
+**Selected Case Studies ({len(case_tiles)}):**
+{case_tiles_text}
+
+Write an executive summary that:
+1. Opens with the strategic context and the client's current stage
+2. Articulates the strategic ambition and how this L&D approach supports it
+3. Highlights the selected training recipes and their expected impact
+4. References the proven results from case studies
+5. Concludes with the delivery approach and next steps
+
+{f'IMPORTANT: When referring to the client, use "{client_name}" instead of placeholders like "[GCC Name]" or generic terms.' if client_name and client_name != 'the client' else ''}
+
+Use a professional, consultative tone. Focus on business outcomes and strategic value. Make it compelling and actionable.
+
+IMPORTANT: Output ONLY the executive summary paragraphs. Do NOT include any preamble text like "Here's an executive summary..." or headings like "Executive Summary:". Start directly with the content.
+"""
+
+        # Call Gemini API
+        print("Generating executive summary with Gemini API...")
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        response = model.generate_content(prompt)
+
+        if not response.text:
+            return jsonify({'error': 'No summary generated'}), 500
+
+        print("Successfully generated executive summary")
+        return jsonify({'summary': response.text})
+
+    except Exception as e:
+        print(f"Error generating executive summary: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to generate summary: {str(e)}'}), 500
 
 
 @app.route('/health', methods=['GET'])
