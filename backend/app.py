@@ -425,9 +425,9 @@ def generate_summary():
 
         # Build the prompt (matching frontend logic)
         client_name = config.get('clientName', 'the client')
-        stage = config.get('stage', {})
-        ambition = config.get('ambition', {})
-        path = config.get('path', {})
+        stage = config.get('stage') or {}
+        ambition = config.get('ambition') or {}
+        path = config.get('path') or {}
         facilitation = config.get('facilitation', '')
         modality = config.get('modality', '')
         recipes = config.get('recipes', [])
