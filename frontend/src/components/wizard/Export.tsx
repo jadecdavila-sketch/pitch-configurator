@@ -60,25 +60,6 @@ export function Export() {
     }
   };
 
-  const handlePricingUpdate = () => {
-    if (pricingType === 'fixed' && fixedAmount) {
-      // Round to 2 decimal places to avoid floating point precision issues
-      const amount = Math.round(parseFloat(fixedAmount) * 100) / 100;
-      config.setPricing({
-        type: 'fixed',
-        amount,
-      });
-    } else if (pricingType === 'per-head' && pricePerHead && minimumEmployees) {
-      // Round to 2 decimal places to avoid floating point precision issues
-      const price = Math.round(parseFloat(pricePerHead) * 100) / 100;
-      config.setPricing({
-        type: 'per-head',
-        pricePerHead: price,
-        minimumEmployees: parseInt(minimumEmployees, 10),
-      });
-    }
-  };
-
   return (
     <div className="space-y-8">
       <div className="text-center">
