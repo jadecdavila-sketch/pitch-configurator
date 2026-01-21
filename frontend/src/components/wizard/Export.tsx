@@ -13,10 +13,10 @@ export function Export() {
   const [error, setError] = useState<string | null>(null);
   const [pricingType, setPricingType] = useState<'fixed' | 'per-head' | null>(config.pricing?.type || null);
   const [fixedAmount, setFixedAmount] = useState<string>(
-    config.pricing?.type === 'fixed' ? String(config.pricing.amount) : ''
+    config.pricing?.type === 'fixed' ? String(Math.round(config.pricing.amount * 100) / 100) : ''
   );
   const [pricePerHead, setPricePerHead] = useState<string>(
-    config.pricing?.type === 'per-head' ? String(config.pricing.pricePerHead) : ''
+    config.pricing?.type === 'per-head' ? String(Math.round(config.pricing.pricePerHead * 100) / 100) : ''
   );
   const [minimumEmployees, setMinimumEmployees] = useState<string>(
     config.pricing?.type === 'per-head' ? String(config.pricing.minimumEmployees) : ''
