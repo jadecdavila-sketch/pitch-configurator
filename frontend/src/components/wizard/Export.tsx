@@ -3,7 +3,7 @@ import { useConfigStore } from '../../store/useConfigStore';
 import { Card, CardContent } from '../ui';
 import { Button } from '../ui';
 import { generateExecutiveSummary } from '../../lib/gemini';
-import { exportToPPTX } from '../../lib/pptx';
+import { downloadPDF } from '../../lib/pdf/generatePDF';
 
 export function Export() {
   const config = useConfigStore();
@@ -36,12 +36,15 @@ export function Export() {
     }
   };
 
-  const handleExportPPTX = async () => {
+  const handleExportPDF = async () => {
+    if (!executiveSummary) return;
+
     setIsExporting(true);
+    setError(null);
     try {
-      await exportToPPTX(config, executiveSummary);
+      await downloadPDF(config, executiveSummary);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to export PowerPoint');
+      setError(err instanceof Error ? err.message : 'Failed to export PDF');
     } finally {
       setIsExporting(false);
     }
@@ -59,14 +62,18 @@ export function Export() {
 
   const handlePricingUpdate = () => {
     if (pricingType === 'fixed' && fixedAmount) {
+      // Round to 2 decimal places to avoid floating point precision issues
+      const amount = Math.round(parseFloat(fixedAmount) * 100) / 100;
       config.setPricing({
         type: 'fixed',
-        amount: parseFloat(fixedAmount),
+        amount,
       });
     } else if (pricingType === 'per-head' && pricePerHead && minimumEmployees) {
+      // Round to 2 decimal places to avoid floating point precision issues
+      const price = Math.round(parseFloat(pricePerHead) * 100) / 100;
       config.setPricing({
         type: 'per-head',
-        pricePerHead: parseFloat(pricePerHead),
+        pricePerHead: price,
         minimumEmployees: parseInt(minimumEmployees, 10),
       });
     }
@@ -211,8 +218,16 @@ export function Export() {
                     min="0"
                     step="0.01"
                     value={fixedAmount}
-                    onChange={(e) => setFixedAmount(e.target.value)}
-                    onBlur={handlePricingUpdate}
+                    onChange={(e) => {
+                      setFixedAmount(e.target.value);
+                      if (e.target.value) {
+                        const amount = Math.round(parseFloat(e.target.value) * 100) / 100;
+                        config.setPricing({
+                          type: 'fixed',
+                          amount,
+                        });
+                      }
+                    }}
                     placeholder="Enter fixed price"
                     className="w-full px-4 py-2 border-2 border-neutral-light-gray rounded-lg focus:border-primary focus:outline-none"
                   />
@@ -231,8 +246,17 @@ export function Export() {
                     min="0"
                     step="0.01"
                     value={pricePerHead}
-                    onChange={(e) => setPricePerHead(e.target.value)}
-                    onBlur={handlePricingUpdate}
+                    onChange={(e) => {
+                      setPricePerHead(e.target.value);
+                      if (e.target.value && minimumEmployees) {
+                        const price = Math.round(parseFloat(e.target.value) * 100) / 100;
+                        config.setPricing({
+                          type: 'per-head',
+                          pricePerHead: price,
+                          minimumEmployees: parseInt(minimumEmployees, 10),
+                        });
+                      }
+                    }}
                     placeholder="Enter price per employee"
                     className="w-full px-4 py-2 border-2 border-neutral-light-gray rounded-lg focus:border-primary focus:outline-none"
                   />
@@ -247,8 +271,17 @@ export function Export() {
                     min="1"
                     step="1"
                     value={minimumEmployees}
-                    onChange={(e) => setMinimumEmployees(e.target.value)}
-                    onBlur={handlePricingUpdate}
+                    onChange={(e) => {
+                      setMinimumEmployees(e.target.value);
+                      if (e.target.value && pricePerHead) {
+                        const price = Math.round(parseFloat(pricePerHead) * 100) / 100;
+                        config.setPricing({
+                          type: 'per-head',
+                          pricePerHead: price,
+                          minimumEmployees: parseInt(e.target.value, 10),
+                        });
+                      }
+                    }}
                     placeholder="Enter minimum employees"
                     className="w-full px-4 py-2 border-2 border-neutral-light-gray rounded-lg focus:border-primary focus:outline-none"
                   />
@@ -328,11 +361,11 @@ export function Export() {
       <div className="flex justify-center gap-4 pt-8 border-t-2 border-neutral-light-gray">
         <Button
           size="lg"
-          onClick={handleExportPPTX}
+          onClick={handleExportPDF}
           disabled={isExporting || !executiveSummary}
           className="min-w-[200px]"
         >
-          {isExporting ? 'Exporting...' : '📊 Export to PowerPoint'}
+          {isExporting ? 'Exporting...' : '📄 Export to PDF'}
         </Button>
       </div>
     </div>

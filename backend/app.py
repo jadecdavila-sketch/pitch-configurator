@@ -104,7 +104,9 @@ def customize_template_cover_slide(prs, client_name):
 
 
 def create_config_summary_slide(prs, config):
-    """Create configuration summary slide"""
+    """Create configuration summary slide
+    ALWAYS adds slide at the END of the presentation.
+    """
     # Use a title-only layout or blank layout
     slide_layout = prs.slide_layouts[5] if len(prs.slide_layouts) > 5 else prs.slide_layouts[0]
     slide = prs.slides.add_slide(slide_layout)
@@ -128,17 +130,17 @@ def create_config_summary_slide(prs, config):
     # Configuration items
     y_pos = 1.8
 
-    # Format pricing if available
-    pricing_text = 'Not specified'
+    # Format pricing text
     pricing = config.get('pricing')
+    pricing_text = 'Not specified'
     if pricing:
         if pricing.get('type') == 'fixed':
             amount = pricing.get('amount', 0)
-            pricing_text = f"${amount:,.2f} (Fixed Price)"
+            pricing_text = f"${amount:,.2f}"
         elif pricing.get('type') == 'per-head':
             price_per_head = pricing.get('pricePerHead', 0)
             min_employees = pricing.get('minimumEmployees', 0)
-            pricing_text = f"${price_per_head:,.2f} per employee (min. {min_employees} employees)"
+            pricing_text = f"${price_per_head:,.2f} per employee (minimum {min_employees} employees)"
 
     config_items = [
         ('Client Name', config.get('clientName', 'Not specified')),
@@ -146,8 +148,8 @@ def create_config_summary_slide(prs, config):
         ('Ambition', config.get('ambition', {}).get('name', 'Not selected')),
         ('Facilitation Model', config.get('facilitation', '').capitalize()),
         ('Delivery Modality', config.get('modality', '').capitalize()),
-        ('Pricing', pricing_text),
         ('Training Recipes', ', '.join([r['name'] for r in config.get('recipes', [])])),
+        ('Pricing', pricing_text),
     ]
 
     for label, value in config_items:
@@ -180,7 +182,9 @@ def create_config_summary_slide(prs, config):
 
 
 def create_executive_summary_slide(prs, executive_summary):
-    """Create executive summary slide(s) - splits content across multiple slides if needed"""
+    """Create executive summary slide(s) - splits content across multiple slides if needed
+    ALWAYS adds slides at the END of the presentation.
+    """
     # Split executive summary into chunks that fit on one slide
     # Estimate: ~1800 characters per slide with 14pt font
     MAX_CHARS_PER_SLIDE = 1800
@@ -211,7 +215,7 @@ def create_executive_summary_slide(prs, executive_summary):
     if current_slide_text:
         slides_content.append(current_slide_text)
 
-    # Create slides
+    # Create slides - ALWAYS at the end
     created_slides = []
     for slide_num, paragraphs_for_slide in enumerate(slides_content):
         # Use a title-only layout or blank layout
@@ -261,16 +265,16 @@ def create_executive_summary_slide(prs, executive_summary):
     return created_slides
 
 
-def insert_slide_at_position(prs, slide_index, insert_at):
-    """Move a slide from one position to another within the same presentation"""
-    # Get the slide ID at the source index
-    slide_id = prs.slides._sldIdLst[slide_index]
+def copy_slide_shapes(source_slide, target_slide):
+    """Copy all shapes from source slide to target slide"""
+    from copy import deepcopy
 
-    # Remove from current position
-    prs.slides._sldIdLst.remove(slide_id)
+    for shape in source_slide.shapes:
+        el = shape.element
+        newel = deepcopy(el)
+        target_slide.shapes._spTree.insert_element_before(newel, 'p:extLst')
 
-    # Insert at new position
-    prs.slides._sldIdLst.insert(insert_at, slide_id)
+    return target_slide
 
 
 @app.route('/generate-pptx', methods=['POST'])
@@ -290,7 +294,7 @@ def generate_pptx():
         print(f"DEBUG: Selected recipe IDs: {selected_recipe_ids}")
         print(f"DEBUG: Selected case study IDs: {selected_case_study_ids}")
 
-        # Load the template
+        # Load the template (only to read from)
         template_path = os.path.join(
             os.path.dirname(__file__),
             '..',
@@ -301,50 +305,29 @@ def generate_pptx():
         if not os.path.exists(template_path):
             return jsonify({'error': 'Template file not found'}), 404
 
-        # Load template
-        prs = Presentation(template_path)
+        # APPROACH: Create NEW presentation and build slides in correct order
+        # NO deletion, NO moving - just add slides in the order we want them
+        # Order: Cover, Exec Summary, Config Summary, Recipes, Case Studies
 
-        # Build list of slide indices to keep from template (0-based)
-        slides_to_keep = set()
+        template_prs = Presentation(template_path)
 
-        # Always keep slide 0 (cover)
-        slides_to_keep.add(0)
+        # Create NEW blank presentation with same slide dimensions
+        prs = Presentation()
+        prs.slide_width = template_prs.slide_width
+        prs.slide_height = template_prs.slide_height
 
-        # Determine which template recipe slides we need
-        for recipe_id in selected_recipe_ids:
-            slide_num = RECIPE_TO_SLIDE_MAP.get(recipe_id)
-            if slide_num:
-                template_slide_index = slide_num - 1  # Convert 1-based to 0-based
-                slides_to_keep.add(template_slide_index)
-                print(f"DEBUG: Will keep recipe {recipe_id} from template slide {slide_num} (index {template_slide_index})")
+        # Get blank layout
+        blank_layout = prs.slide_layouts[6] if len(prs.slide_layouts) > 6 else prs.slide_layouts[0]
 
-        # Determine which template case study slides we need
-        if selected_case_study_ids:
-            # Include case study cover slide (slide 28)
-            slides_to_keep.add(CASE_STUDY_COVER_SLIDE - 1)
-            print(f"DEBUG: Will keep case study cover from template slide {CASE_STUDY_COVER_SLIDE} (index {CASE_STUDY_COVER_SLIDE - 1})")
+        print("DEBUG: Building presentation in correct order...")
 
-            for case_study_id in selected_case_study_ids:
-                slide_num = CASE_STUDY_TO_SLIDE_MAP.get(case_study_id)
-                if slide_num:
-                    template_slide_index = slide_num - 1  # Convert 1-based to 0-based
-                    slides_to_keep.add(template_slide_index)
-                    print(f"DEBUG: Will keep case study {case_study_id} from template slide {slide_num} (index {template_slide_index})")
+        # 1. Add cover slide (copy from template slide 0)
+        print("DEBUG: Adding cover slide")
+        cover_slide = prs.slides.add_slide(blank_layout)
+        copy_slide_shapes(template_prs.slides[0], cover_slide)
 
-        # Delete slides we don't need (in reverse order to preserve indices)
-        print(f"DEBUG: Total slides in template: {len(prs.slides)}")
-        print(f"DEBUG: Slides to keep: {sorted(slides_to_keep)}")
-
-        for i in range(len(prs.slides) - 1, -1, -1):
-            if i not in slides_to_keep:
-                print(f"DEBUG: Deleting slide at index {i}")
-                rId = prs.slides._sldIdLst[i]
-                prs.part.drop_rel(rId.rId)
-                prs.slides._sldIdLst.remove(rId)
-
-        # Customize the cover slide with client name
-        if len(prs.slides) > 0 and config.get('clientName'):
-            cover_slide = prs.slides[0]
+        # Customize cover with client name
+        if config.get('clientName'):
             client_box = cover_slide.shapes.add_textbox(
                 Inches(0.5), Inches(5.2), Inches(9), Inches(0.6)
             )
@@ -356,44 +339,46 @@ def generate_pptx():
             client_para.font.color.rgb = RGBColor(248, 181, 12)
             client_para.alignment = PP_ALIGN.CENTER
 
-        print(f"DEBUG: After deleting unwanted slides, we have {len(prs.slides)} slides")
-        print(f"DEBUG: Slide order before adding custom: cover + template slides")
-
-        # Store number of template slides before adding custom slides
-        num_template_slides_kept = len(prs.slides)
-
-        # Create executive summary slides first (if needed)
-        num_exec_slides = 0
+        # 2. Add executive summary slides (custom created)
         if executive_summary:
-            exec_slides = create_executive_summary_slide(prs, executive_summary)
-            num_exec_slides = len(exec_slides)
-            print(f"DEBUG: After adding {num_exec_slides} executive summary slides, we have {len(prs.slides)} slides")
+            print("DEBUG: Adding executive summary slides")
+            create_executive_summary_slide(prs, executive_summary)
 
-            # Move executive summary slides to position 1 (right after cover)
-            # They are currently at the end, so move them one by one
-            for i in range(num_exec_slides):
-                # The slide is always at the end after we move previous ones
-                current_position = num_template_slides_kept + i
-                slide_id = prs.slides._sldIdLst[current_position]
-                prs.slides._sldIdLst.remove(slide_id)
-                prs.slides._sldIdLst.insert(1 + i, slide_id)
-                print(f"DEBUG: Moved executive summary slide {i+1} from position {current_position} to position {1 + i}")
-
-        # Create config summary slide
+        # 3. Add config summary slide (custom created)
+        print("DEBUG: Adding config summary slide")
         create_config_summary_slide(prs, config)
-        print(f"DEBUG: After adding config summary, we have {len(prs.slides)} slides")
 
-        # Move config summary to position 1 + num_exec_slides (right after exec summary)
-        config_summary_position = len(prs.slides) - 1  # It's at the end
-        slide_id = prs.slides._sldIdLst[config_summary_position]
-        prs.slides._sldIdLst.remove(slide_id)
-        target_position = 1 + num_exec_slides
-        prs.slides._sldIdLst.insert(target_position, slide_id)
-        print(f"DEBUG: Moved config summary from position {config_summary_position} to position {target_position}")
+        # 4. Add selected recipe slides (copy from template)
+        if selected_recipe_ids:
+            print(f"DEBUG: Adding {len(selected_recipe_ids)} recipe slides")
+            for recipe_id in selected_recipe_ids:
+                slide_num = RECIPE_TO_SLIDE_MAP.get(recipe_id)
+                if slide_num:
+                    template_slide_idx = slide_num - 1
+                    recipe_slide = prs.slides.add_slide(blank_layout)
+                    copy_slide_shapes(template_prs.slides[template_slide_idx], recipe_slide)
+                    print(f"DEBUG: Copied recipe slide {slide_num}")
 
-        # Final order: Cover, Executive Summary slides, Config Summary, Template slides (recipes/case studies)
-        print(f"DEBUG: Final slide count: {len(prs.slides)}")
-        print(f"DEBUG: Final order: Cover, Executive Summary ({num_exec_slides} slides), Config Summary, Recipes, Case Studies")
+        # 5. Add case studies if selected
+        if selected_case_study_ids:
+            # Add case studies cover slide
+            print("DEBUG: Adding case studies cover slide")
+            case_cover_slide = prs.slides.add_slide(blank_layout)
+            copy_slide_shapes(template_prs.slides[CASE_STUDY_COVER_SLIDE - 1], case_cover_slide)
+
+            # Add individual case study slides
+            print(f"DEBUG: Adding {len(selected_case_study_ids)} case study slides")
+            for case_study_id in selected_case_study_ids:
+                slide_num = CASE_STUDY_TO_SLIDE_MAP.get(case_study_id)
+                if slide_num:
+                    template_slide_idx = slide_num - 1
+                    case_slide = prs.slides.add_slide(blank_layout)
+                    copy_slide_shapes(template_prs.slides[template_slide_idx], case_slide)
+                    print(f"DEBUG: Copied case study slide {slide_num}")
+
+        print(f"DEBUG: Final: {len(prs.slides)} slides")
+        print(f"DEBUG: Order: Cover, Recipes, Case Studies, Exec Summary, Config Summary")
+        print(f"DEBUG: NOTE: Exec/Config at end - manual reorder in PowerPoint needed")
 
         # Save to BytesIO
         output = io.BytesIO()
