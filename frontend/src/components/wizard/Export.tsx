@@ -4,6 +4,34 @@ import { Card, CardContent } from '../ui';
 import { Button } from '../ui';
 import { generateExecutiveSummary } from '../../lib/gemini';
 import { downloadPDF } from '../../lib/pdf/generatePDF';
+import type { PricingTier } from '../../types';
+
+const PRICING_TIERS = [
+  {
+    id: 'base-ops' as PricingTier,
+    name: 'Base Ops - Operational Foundation',
+    price: 4000,
+    idealFor: 'Small-to-mid GCCs (50-150 employees)',
+    bestWhen: 'Operational support for onboarding and vendor management without full L&D infrastructure',
+    keyBenefit: 'Cost-effective foundation for essential L&D operations',
+  },
+  {
+    id: 'base-plus' as PricingTier,
+    name: 'Base+ - Full-Service Learning',
+    price: 7500,
+    idealFor: 'Growing GCCs (150-300 employees)',
+    bestWhen: 'Complete learning operations including content library, LMS platform, and regular training delivery',
+    keyBenefit: 'Comprehensive L&D solution with shared resources and proven content',
+  },
+  {
+    id: 'enterprise' as PricingTier,
+    name: 'Enterprise - Embedded Partnership',
+    price: 10500,
+    idealFor: 'Large/strategic GCCs (300+ employees)',
+    bestWhen: 'Dedicated L&D team functioning as extension of your organization with full customization',
+    keyBenefit: 'Strategic partnership with embedded team, custom solutions, and maximum delivery capacity',
+  },
+];
 
 export function Export() {
   const config = useConfigStore();
@@ -11,15 +39,8 @@ export function Export() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pricingType, setPricingType] = useState<'fixed' | 'per-head' | null>(config.pricing?.type || null);
-  const [fixedAmount, setFixedAmount] = useState<string>(
-    config.pricing?.type === 'fixed' ? String(Math.round(config.pricing.amount * 100) / 100) : ''
-  );
-  const [pricePerHead, setPricePerHead] = useState<string>(
-    config.pricing?.type === 'per-head' ? String(Math.round(config.pricing.pricePerHead * 100) / 100) : ''
-  );
-  const [minimumEmployees, setMinimumEmployees] = useState<string>(
-    config.pricing?.type === 'per-head' ? String(config.pricing.minimumEmployees) : ''
+  const [selectedTier, setSelectedTier] = useState<PricingTier | null>(
+    config.pricing?.type === 'tier' ? config.pricing.tier : null
   );
 
   const handleGenerateSummary = async () => {
@@ -50,13 +71,16 @@ export function Export() {
     }
   };
 
-  const handlePricingTypeChange = (type: 'fixed' | 'per-head' | null) => {
-    setPricingType(type);
-    if (!type) {
-      config.setPricing(null);
-      setFixedAmount('');
-      setPricePerHead('');
-      setMinimumEmployees('');
+  const handleTierSelect = (tierId: PricingTier) => {
+    const tier = PRICING_TIERS.find(t => t.id === tierId);
+    if (tier) {
+      setSelectedTier(tierId);
+      config.setPricing({
+        type: 'tier',
+        tier: tierId,
+        name: tier.name,
+        amount: tier.price,
+      });
     }
   };
 
@@ -142,153 +166,62 @@ export function Export() {
 
       {/* Pricing Section */}
       <div className="space-y-4">
-        <h3 className="text-2xl font-bold text-secondary-dark">Pricing</h3>
+        <h3 className="text-2xl font-bold text-secondary-dark">Which Tier Is Right for Your GCC?</h3>
 
-        <Card>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-neutral-charcoal">Select pricing model:</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {PRICING_TIERS.map((tier) => (
+            <Card
+              key={tier.id}
+              className={`cursor-pointer transition-all hover:shadow-lg ${
+                selectedTier === tier.id
+                  ? 'ring-2 ring-primary border-primary'
+                  : 'border-neutral-light-gray'
+              }`}
+              onClick={() => handleTierSelect(tier.id)}
+            >
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h4 className="font-bold text-secondary-dark text-sm leading-tight">{tier.name}</h4>
+                </div>
 
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="pricingType"
-                    value="fixed"
-                    checked={pricingType === 'fixed'}
-                    onChange={() => handlePricingTypeChange('fixed')}
-                    className="w-4 h-4 text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm font-medium text-neutral-charcoal">Fixed Price</span>
-                </label>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="text-primary font-semibold">Ideal for: </span>
+                    <span className="text-neutral-charcoal">{tier.idealFor}</span>
+                  </div>
+                  <div>
+                    <span className="text-primary font-semibold">Best when you need: </span>
+                    <span className="text-neutral-charcoal">{tier.bestWhen}</span>
+                  </div>
+                  <div>
+                    <span className="text-primary font-semibold">Key benefit: </span>
+                    <span className="text-neutral-charcoal">{tier.keyBenefit}</span>
+                  </div>
+                </div>
 
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="pricingType"
-                    value="per-head"
-                    checked={pricingType === 'per-head'}
-                    onChange={() => handlePricingTypeChange('per-head')}
-                    className="w-4 h-4 text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm font-medium text-neutral-charcoal">Price Per Head</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="pricingType"
-                    value="none"
-                    checked={pricingType === null}
-                    onChange={() => handlePricingTypeChange(null)}
-                    className="w-4 h-4 text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm font-medium text-neutral-charcoal">No Pricing</span>
-                </label>
-              </div>
-            </div>
-
-            {pricingType === 'fixed' && (
-              <div className="pt-4 border-t border-neutral-light-gray">
-                <label className="block">
-                  <span className="text-sm font-medium text-neutral-charcoal mb-2 block">
-                    Fixed Amount ($)
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={fixedAmount}
-                    onChange={(e) => {
-                      setFixedAmount(e.target.value);
-                      if (e.target.value) {
-                        const amount = Math.round(parseFloat(e.target.value) * 100) / 100;
-                        config.setPricing({
-                          type: 'fixed',
-                          amount,
-                        });
-                      }
-                    }}
-                    placeholder="Enter fixed price"
-                    className="w-full px-4 py-2 border-2 border-neutral-light-gray rounded-lg focus:border-primary focus:outline-none"
-                  />
-                </label>
-              </div>
-            )}
-
-            {pricingType === 'per-head' && (
-              <div className="pt-4 border-t border-neutral-light-gray space-y-4">
-                <label className="block">
-                  <span className="text-sm font-medium text-neutral-charcoal mb-2 block">
-                    Price Per Employee ($)
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={pricePerHead}
-                    onChange={(e) => {
-                      setPricePerHead(e.target.value);
-                      if (e.target.value && minimumEmployees) {
-                        const price = Math.round(parseFloat(e.target.value) * 100) / 100;
-                        config.setPricing({
-                          type: 'per-head',
-                          pricePerHead: price,
-                          minimumEmployees: parseInt(minimumEmployees, 10),
-                        });
-                      }
-                    }}
-                    placeholder="Enter price per employee"
-                    className="w-full px-4 py-2 border-2 border-neutral-light-gray rounded-lg focus:border-primary focus:outline-none"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="text-sm font-medium text-neutral-charcoal mb-2 block">
-                    Minimum Number of Employees
-                  </span>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={minimumEmployees}
-                    onChange={(e) => {
-                      setMinimumEmployees(e.target.value);
-                      if (e.target.value && pricePerHead) {
-                        const price = Math.round(parseFloat(pricePerHead) * 100) / 100;
-                        config.setPricing({
-                          type: 'per-head',
-                          pricePerHead: price,
-                          minimumEmployees: parseInt(e.target.value, 10),
-                        });
-                      }
-                    }}
-                    placeholder="Enter minimum employees"
-                    className="w-full px-4 py-2 border-2 border-neutral-light-gray rounded-lg focus:border-primary focus:outline-none"
-                  />
-                </label>
-              </div>
-            )}
-
-            {config.pricing && (
-              <div className="pt-4 border-t border-neutral-light-gray bg-primary/5 rounded-lg p-4">
-                <p className="text-sm font-bold text-neutral-charcoal mb-1">Current Pricing:</p>
-                {config.pricing.type === 'fixed' ? (
-                  <p className="text-lg font-bold text-primary">
-                    ${config.pricing.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="pt-3 border-t border-neutral-light-gray">
+                  <p className="text-2xl font-bold text-neutral-charcoal">
+                    ${tier.price.toLocaleString('en-US')} <span className="text-sm font-normal">/ month</span>
                   </p>
-                ) : (
-                  <p className="text-lg font-bold text-primary">
-                    ${config.pricing.pricePerHead.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per employee
-                    <span className="text-sm font-medium text-neutral-charcoal ml-2">
-                      (minimum {config.pricing.minimumEmployees} employees)
-                    </span>
-                  </p>
+                </div>
+
+                {selectedTier === tier.id && (
+                  <div className="flex items-center gap-2 text-primary font-medium text-sm">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Selected
+                  </div>
                 )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Executive Summary Section */}

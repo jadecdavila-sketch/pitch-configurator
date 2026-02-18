@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import type { ConfigurationState, Stage, Ambition, Recipe, CaseTile, Path, FacilitationModel, Modality, Pricing } from '../types';
+import type { ConfigurationState, Stage, Ambition, Recipe, CaseTile, Path, FacilitationModel, Modality, Pricing, OrganizationalChallenge } from '../types';
 
 interface ConfigStore extends ConfigurationState {
   setClientName: (clientName: string) => void;
   setStage: (stage: Stage) => void;
   setAmbition: (ambition: Ambition) => void;
+  toggleChallenge: (challenge: OrganizationalChallenge) => void;
   addRecipe: (recipe: Recipe) => void;
   removeRecipe: (recipeId: string) => void;
   addCaseTile: (caseTile: CaseTile) => void;
@@ -23,6 +24,7 @@ const initialState: ConfigurationState = {
   clientName: '',
   stage: null,
   ambition: null,
+  challenges: [],
   recipes: [],
   caseTiles: [],
   path: null,
@@ -42,6 +44,13 @@ export const useConfigStore = create<ConfigStore>((set) => ({
   setStage: (stage) => set({ stage }),
 
   setAmbition: (ambition) => set({ ambition }),
+
+  toggleChallenge: (challenge) =>
+    set((state) => ({
+      challenges: state.challenges.includes(challenge)
+        ? state.challenges.filter((c) => c !== challenge)
+        : [...state.challenges, challenge],
+    })),
 
   addRecipe: (recipe) =>
     set((state) => ({

@@ -56,7 +56,6 @@ export const RECIPES: Recipe[] = [
   { id: 'enterprise-mindset-strategy', name: 'Enterprise Mindset & Business Strategy', stage: 'transform', description: 'Align leadership thinking with business strategy' },
   { id: 'global-mobility', name: 'Global Mobility Readiness', stage: 'transform', description: 'Prepare leaders for international assignments' },
   { id: 'summit-innovation', name: 'SUMMIT: Building a Growth and Innovation Mindset', stage: 'transform', description: 'Capstone for Executive Leaders' },
-  { id: 'miscellaneous', name: 'Miscellaneous', stage: 'transform', description: 'Additional executive development topics' },
   { id: 'global-perspectives', name: 'Global Perspectives', stage: 'design-setup', description: 'First 30 Days Cross-Cultural Communication Onboarding' },
 ];
 
@@ -73,8 +72,9 @@ export const CASE_TILES: CaseTile[] = [
 
 export const WIZARD_STEPS = [
   { id: 1, label: 'Client Information' },
-  { id: 2, label: 'Recipes' },
-  { id: 3, label: 'Case Studies' },
-  { id: 4, label: 'Delivery' },
-  { id: 5, label: 'Export' },
+  { id: 2, label: 'Challenges' },
+  { id: 3, label: 'Recipes' },
+  { id: 4, label: 'Case Studies' },
+  { id: 5, label: 'Delivery' },
+  { id: 6, label: 'Export' },
 ];

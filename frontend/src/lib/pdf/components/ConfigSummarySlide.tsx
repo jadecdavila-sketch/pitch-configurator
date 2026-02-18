@@ -43,6 +43,8 @@ export function ConfigSummarySlide({ config }: ConfigSummarySlideProps) {
       pricingText = `$${config.pricing.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     } else if (config.pricing.type === 'per-head') {
       pricingText = `$${config.pricing.pricePerHead.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per employee (minimum ${config.pricing.minimumEmployees} employees)`;
+    } else if (config.pricing.type === 'tier') {
+      pricingText = `${config.pricing.name} - $${config.pricing.amount.toLocaleString('en-US')} / month`;
     }
   }
 

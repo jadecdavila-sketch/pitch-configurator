@@ -473,7 +473,7 @@ IMPORTANT: Output ONLY the executive summary paragraphs. Do NOT include any prea
 
         # Call Gemini API
         print("Generating executive summary with Gemini API...")
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
 
         if not response.text:

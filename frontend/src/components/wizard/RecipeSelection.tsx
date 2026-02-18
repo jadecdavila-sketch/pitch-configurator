@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { RECIPES } from '../../lib/data';
 import { useConfigStore } from '../../store/useConfigStore';
 import { getRecipeContent } from '../../lib/recipeContent';
+import { recipeMatchesChallenges } from '../../lib/challengeMapping';
 import type { Recipe } from '../../types';
 
 export function RecipeSelection() {
-  const { recipes, addRecipe, removeRecipe } = useConfigStore();
+  const { recipes, addRecipe, removeRecipe, challenges } = useConfigStore();
   const [expandedRecipes, setExpandedRecipes] = useState<Set<string>>(new Set());
 
   const isRecipeSelected = (recipeId: string) => {
@@ -33,11 +34,17 @@ export function RecipeSelection() {
     });
   };
 
+  // Filter recipes based on selected challenges
+  const filterByChallenge = (recipeList: Recipe[]) => {
+    if (challenges.length === 0) return recipeList;
+    return recipeList.filter(r => recipeMatchesChallenges(r.id, challenges));
+  };
+
   // Group recipes by category (matching PowerPoint template structure)
   const recipesByCategory = {
-    'individual-contributor': RECIPES.filter(r => ['day1-onboarding', '30-60-90-onboarding', 'critical-thinking', 'navigating-matrix', 'decoding-business'].includes(r.id)),
-    'manager': RECIPES.filter(r => ['ascend-leadership', 'guiding-performance', 'delegation-stakeholder', 'ascend-plus', 'conflict-performance', 'people-leader-academy', 'coaching-next-line', 'leading-change-scale'].includes(r.id)),
-    'executive': RECIPES.filter(r => ['one-voice', 'enterprise-thinking', 'high-performance-culture', 'change-leadership-transformation', 'leadership-coaching-cross-border', 'enterprise-mindset-strategy', 'global-mobility', 'summit-innovation', 'miscellaneous', 'global-perspectives'].includes(r.id)),
+    'individual-contributor': filterByChallenge(RECIPES.filter(r => ['day1-onboarding', '30-60-90-onboarding', 'critical-thinking', 'navigating-matrix', 'decoding-business'].includes(r.id))),
+    'manager': filterByChallenge(RECIPES.filter(r => ['ascend-leadership', 'guiding-performance', 'delegation-stakeholder', 'ascend-plus', 'conflict-performance', 'people-leader-academy', 'coaching-next-line', 'leading-change-scale'].includes(r.id))),
+    'executive': filterByChallenge(RECIPES.filter(r => ['one-voice', 'enterprise-thinking', 'high-performance-culture', 'change-leadership-transformation', 'leadership-coaching-cross-border', 'enterprise-mindset-strategy', 'global-mobility', 'summit-innovation', 'global-perspectives'].includes(r.id))),
   };
 
   const categoryLabels = {
@@ -45,6 +52,8 @@ export function RecipeSelection() {
     'manager': 'Manager Courses',
     'executive': 'Executive Courses',
   };
+
+  const totalFilteredRecipes = Object.values(recipesByCategory).reduce((sum, arr) => sum + arr.length, 0);
 
   return (
     <div className="space-y-8">
@@ -55,19 +64,30 @@ export function RecipeSelection() {
         <p className="text-lg text-neutral-charcoal">
           Choose training programs from any stage (we recommend 4)
         </p>
-        <div className="mt-4 inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg">
-          <span className="text-sm font-bold text-primary">
-            {recipes.length} selected
-          </span>
-          {recipes.length > 4 && (
-            <span className="text-xs text-warning font-medium">
-              (4 recommended)
+        <div className="mt-4 inline-flex items-center gap-4">
+          <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg">
+            <span className="text-sm font-bold text-primary">
+              {recipes.length} selected
             </span>
+            {recipes.length > 4 && (
+              <span className="text-xs text-warning font-medium">
+                (4 recommended)
+              </span>
+            )}
+          </div>
+          {challenges.length > 0 && (
+            <div className="inline-flex items-center gap-2 bg-secondary-dark/10 px-4 py-2 rounded-lg">
+              <span className="text-sm font-medium text-secondary-dark">
+                Showing {totalFilteredRecipes} recipes for your {challenges.length} selected challenge{challenges.length !== 1 ? 's' : ''}
+              </span>
+            </div>
           )}
         </div>
       </div>
 
-      {Object.entries(recipesByCategory).map(([categoryId, categoryRecipes]) => (
+      {Object.entries(recipesByCategory).map(([categoryId, categoryRecipes]) => {
+        if (categoryRecipes.length === 0) return null;
+        return (
         <div key={categoryId} className="space-y-3">
           <h3 className="text-xl font-bold text-secondary-dark">{categoryLabels[categoryId as keyof typeof categoryLabels]}</h3>
           <div className="space-y-2">
@@ -139,7 +159,8 @@ export function RecipeSelection() {
             })}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

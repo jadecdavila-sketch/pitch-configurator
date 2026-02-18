@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { WizardLayout } from './components/layout/WizardLayout';
 import { StageAmbitionSelection } from './components/wizard/StageAmbitionSelection';
+import { ChallengeSelection } from './components/wizard/ChallengeSelection';
 import { RecipeSelection } from './components/wizard/RecipeSelection';
 import { CaseStudySelection } from './components/wizard/CaseStudySelection';
 import { PathAndDelivery } from './components/wizard/PathAndDelivery';
@@ -9,10 +10,10 @@ import { useConfigStore } from './store/useConfigStore';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
-  const { stage, ambition, recipes } = useConfigStore();
+  const { stage, ambition, challenges, recipes } = useConfigStore();
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -28,6 +29,8 @@ function App() {
       case 0:
         return stage !== null && ambition !== null;
       case 1:
+        return challenges.length > 0;
+      case 2:
         return recipes.length > 0;
       default:
         return true;
@@ -39,12 +42,14 @@ function App() {
       case 0:
         return <StageAmbitionSelection />;
       case 1:
-        return <RecipeSelection />;
+        return <ChallengeSelection />;
       case 2:
-        return <CaseStudySelection />;
+        return <RecipeSelection />;
       case 3:
-        return <PathAndDelivery />;
+        return <CaseStudySelection />;
       case 4:
+        return <PathAndDelivery />;
+      case 5:
         return <Export />;
       default:
         return (

@@ -33,6 +33,16 @@ export interface Path {
 export type FacilitationModel = 'internal' | 'external' | 'mixed';
 export type Modality = 'digital' | 'hybrid' | 'in-person';
 
+export type OrganizationalChallenge =
+  | 'engagement'
+  | 'attrition'
+  | 'internal-mobility'
+  | 'knowledge-transfer'
+  | 'innovation-ownership'
+  | 'leadership-pipeline'
+  | 'skill-redundancy'
+  | 'culture-misalignment';
+
 export interface FixedPricing {
   type: 'fixed';
   amount: number;
@@ -44,12 +54,22 @@ export interface PerHeadPricing {
   minimumEmployees: number;
 }
 
-export type Pricing = FixedPricing | PerHeadPricing | null;
+export type PricingTier = 'base-ops' | 'base-plus' | 'enterprise';
+
+export interface TierPricing {
+  type: 'tier';
+  tier: PricingTier;
+  name: string;
+  amount: number;
+}
+
+export type Pricing = FixedPricing | PerHeadPricing | TierPricing | null;
 
 export interface ConfigurationState {
   clientName: string;
   stage: Stage | null;
   ambition: Ambition | null;
+  challenges: OrganizationalChallenge[];
   recipes: Recipe[];
   caseTiles: CaseTile[];
   path: Path | null;

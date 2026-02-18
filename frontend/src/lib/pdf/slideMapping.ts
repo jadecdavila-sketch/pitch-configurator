@@ -26,7 +26,6 @@ export const RECIPE_SLIDE_IMAGES: Record<string, string> = {
   'enterprise-mindset-strategy': '/pitch-configurator/slides/enterprise-mindset-strategy.png',
   'global-mobility': '/pitch-configurator/slides/global-mobility.png',
   'summit-innovation': '/pitch-configurator/slides/summit-innovation.png',
-  'miscellaneous': '/pitch-configurator/slides/miscellaneous.png',
   'global-perspectives': '/pitch-configurator/slides/global-perspectives.png',
 };
 
